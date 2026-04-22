@@ -1,0 +1,16 @@
+torch>=2.2
+torchvision>=0.17
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+scipy>=1.12
+matplotlib>=3.8
+seaborn>=0.13
+jupyterlab>=4.0
+ipykernel>=6.0
+tqdm
+lightgbm
+ember @ git+https://github.com/elastic/ember.git
+lief>=0.14
+black>=24.0
+pytest>=8.0
