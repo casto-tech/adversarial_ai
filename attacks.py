@@ -18,8 +18,8 @@ def fgsm_attack(
     preds = model(x_adv)
     loss = criterion(preds, y)
     loss.backward()
-    # Subtract gradient sign to push toward benign (lower score)
-    x_adv = x_adv - epsilon * x_adv.grad.sign()
+    # Add gradient sign to maximize loss → minimize malware score (evasion toward benign)
+    x_adv = x_adv + epsilon * x_adv.grad.sign()
     x_adv = x_adv.clamp(0.0, 1.0)
     return x_adv.detach()
 
@@ -44,9 +44,9 @@ def pgd_attack(
         preds = model(x_adv)
         loss = criterion(preds, y)
         loss.backward()
-        # Step toward lower loss (evasion)
+        # Step to maximize loss → minimize malware score (evasion toward benign)
         grad_sign = x_adv.grad.detach().sign()
-        x_adv = x_adv.detach() - alpha * grad_sign
+        x_adv = x_adv.detach() + alpha * grad_sign
         # Project back into epsilon-ball around original x
         delta = (x_adv - x).clamp(-epsilon, epsilon)
         x_adv = (x + delta).clamp(0.0, 1.0)

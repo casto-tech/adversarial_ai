@@ -51,25 +51,24 @@ def evaluate_at_epsilon(
 
     for X_batch, y_batch in loader:
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-        # Only attack malware samples
-        mal_mask = y_batch == 1
-        if mal_mask.sum() == 0:
-            continue
-        X_mal = X_batch[mal_mask]
-        y_mal = y_batch[mal_mask]
+        X_out = X_batch.clone()
+        # Perturb only malware samples; benign samples stay clean (for FPR anchor)
         if epsilon > 0:
-            if attack == "fgsm":
-                X_adv = fgsm_attack(model, X_mal, y_mal, epsilon)
-            elif attack == "pgd":
-                X_adv = pgd_attack(model, X_mal, y_mal, epsilon, alpha=0.01, steps=40)
-            else:
-                raise ValueError(f"Unknown attack: {attack}")
-        else:
-            X_adv = X_mal.detach()
+            mal_mask = y_batch == 1
+            if mal_mask.sum() > 0:
+                X_mal = X_batch[mal_mask]
+                y_mal = y_batch[mal_mask]
+                if attack == "fgsm":
+                    X_out[mal_mask] = fgsm_attack(model, X_mal, y_mal, epsilon)
+                elif attack == "pgd":
+                    alpha = max(epsilon / 10, 1e-4)
+                    X_out[mal_mask] = pgd_attack(model, X_mal, y_mal, epsilon, alpha=alpha, steps=40)
+                else:
+                    raise ValueError(f"Unknown attack: {attack}")
         with torch.no_grad():
-            preds = model(X_adv)
+            preds = model(X_out)
         all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(y_mal.cpu().numpy())
+        all_labels.extend(y_batch.cpu().numpy())
 
     return detection_rate_at_fpr(np.array(all_labels), np.array(all_preds))
 
